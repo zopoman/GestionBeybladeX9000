@@ -31,15 +31,59 @@ export const generateGroups = (participants: Participant[], groupCount: number):
 
   // Generate Round Robin Matches
   groups.forEach(group => {
-    for (let i = 0; i < group.participants.length; i++) {
-      for (let j = i + 1; j < group.participants.length; j++) {
-        group.matches.push({
-          id: uuidv4(),
-          p1Id: group.participants[i].id,
-          p2Id: group.participants[j].id,
-          result: null,
-          isCompleted: false,
-        });
+    // Implement Circle Method for Round Robin
+    const ps = [...group.participants];
+    const n = ps.length;
+    
+    // Add dummy participant if odd number
+    if (n % 2 !== 0) {
+      ps.push({
+        id: 'BYE',
+        name: 'BYE',
+        stats: {
+          matchesPlayed: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          pointsFor: 0,
+          pointsAgainst: 0,
+          xtremeFinishes: 0,
+          pointsDiff: 0,
+        }
+      });
+    }
+    
+    const numParticipants = ps.length; // Always even now
+    const rounds = numParticipants - 1;
+    const half = numParticipants / 2;
+    
+    for (let r = 0; r < rounds; r++) {
+      for (let i = 0; i < half; i++) {
+        const p1 = ps[i];
+        const p2 = ps[numParticipants - 1 - i];
+        
+        // Don't create matches with BYE
+        if (p1.id !== 'BYE' && p2.id !== 'BYE') {
+          group.matches.push({
+            id: uuidv4(),
+            p1Id: p1.id,
+            p2Id: p2.id,
+            result: null,
+            isCompleted: false,
+            round: r + 1 // 1-indexed
+          });
+        }
+      }
+      
+      // Rotate participants (keep first fixed)
+      // [0, 1, 2, 3] -> slice(1) -> [1, 2, 3] -> pop -> 3, unshift -> [3, 1, 2]
+      // New array -> [0, 3, 1, 2]
+      if (ps.length > 1) {
+        const fixed = ps[0];
+        const rotating = ps.slice(1);
+        const last = rotating.pop();
+        if (last) rotating.unshift(last);
+        ps.splice(0, ps.length, fixed, ...rotating);
       }
     }
   });

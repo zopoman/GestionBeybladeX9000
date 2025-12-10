@@ -27,6 +27,7 @@ export type Match = {
   p2Id: string;
   result: MatchResult | null;
   isCompleted: boolean;
+  round?: number;
 };
 
 export type Group = {

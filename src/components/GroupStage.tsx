@@ -105,63 +105,84 @@ const GroupStage = ({ groups, onMatchUpdate, onFinish, readOnly = false }: Group
             <h3 className="text-xl font-orbitron text-white">Matches</h3>
           </div>
 
-          <div className="space-y-4">
-            {activeGroup.matches.map((match) => {
-              const p1 = activeGroup.participants.find(p => p.id === match.p1Id);
-              const p2 = activeGroup.participants.find(p => p.id === match.p2Id);
-              const isEditing = editingMatch === match.id;
+          <div className="space-y-6">
+            {Object.entries(
+              activeGroup.matches.reduce((acc, match) => {
+                const round = match.round || 1;
+                if (!acc[round]) acc[round] = [];
+                acc[round].push(match);
+                return acc;
+              }, {} as Record<number, Match[]>)
+            )
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([round, matches]) => (
+              <div key={round} className="space-y-3">
+                <div className="flex items-center gap-2 px-2">
+                  <div className="h-[1px] bg-gray-800 flex-1" />
+                  <span className="text-neon-blue font-orbitron text-xs tracking-widest uppercase">
+                    Fecha {round}
+                  </span>
+                  <div className="h-[1px] bg-gray-800 flex-1" />
+                </div>
+                
+                {matches.map((match) => {
+                  const p1 = activeGroup.participants.find(p => p.id === match.p1Id);
+                  const p2 = activeGroup.participants.find(p => p.id === match.p2Id);
+                  const isEditing = editingMatch === match.id;
 
-              return (
-                <div key={match.id} className="bg-dark-surface p-3 md:p-4 rounded-lg border border-gray-800 hover:border-neon-purple/30 transition-colors">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className={cn("font-bold w-1/3 text-right truncate", match.result && match.result.p1Score > match.result.p2Score ? "text-neon-green" : "text-white")}>
-                      {p1?.name}
-                    </span>
-                    <span className="text-gray-500 text-xs px-2">VS</span>
-                    <span className={cn("font-bold w-1/3 text-left truncate", match.result && match.result.p2Score > match.result.p1Score ? "text-neon-green" : "text-white")}>
-                      {p2?.name}
-                    </span>
-                  </div>
+                  return (
+                    <div key={match.id} className="bg-dark-surface p-3 md:p-4 rounded-lg border border-gray-800 hover:border-neon-purple/30 transition-colors">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className={cn("font-bold w-1/3 text-right truncate", match.result && match.result.p1Score > match.result.p2Score ? "text-neon-green" : "text-white")}>
+                          {p1?.name}
+                        </span>
+                        <span className="text-gray-500 text-xs px-2">VS</span>
+                        <span className={cn("font-bold w-1/3 text-left truncate", match.result && match.result.p2Score > match.result.p1Score ? "text-neon-green" : "text-white")}>
+                          {p2?.name}
+                        </span>
+                      </div>
 
-                  {isEditing ? (
-                    <MatchResultForm
-                      initialResult={match.result}
-                      p1Name={p1?.name || 'P1'}
-                      p2Name={p2?.name || 'P2'}
-                      onSave={(result) => {
-                        onMatchUpdate(activeGroupIndex, match.id, result);
-                        setEditingMatch(null);
-                      }}
-                      onCancel={() => setEditingMatch(null)}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      {match.isCompleted ? (
-                        <>
-                          <div className="text-2xl font-orbitron font-bold text-white">
-                            {match.result?.p1Score} - {match.result?.p2Score}
-                          </div>
-                          <div className="text-xs uppercase tracking-widest text-neon-blue">
-                            {match.result?.finishType} Finish
-                          </div>
-                          {!readOnly && (
-                            <button onClick={() => handleEditClick(match)} className="text-xs text-gray-500 hover:text-white underline mt-1">
-                              Edit Result
-                            </button>
-                          )}
-                        </>
+                      {isEditing ? (
+                        <MatchResultForm
+                          initialResult={match.result}
+                          p1Name={p1?.name || 'P1'}
+                          p2Name={p2?.name || 'P2'}
+                          onSave={(result) => {
+                            onMatchUpdate(activeGroupIndex, match.id, result);
+                            setEditingMatch(null);
+                          }}
+                          onCancel={() => setEditingMatch(null)}
+                        />
                       ) : (
-                        !readOnly && (
-                          <NeonButton onClick={() => handleEditClick(match)} variant="secondary" className="py-1 px-4 text-xs">
-                            Enter Result
-                          </NeonButton>
-                        )
+                        <div className="flex flex-col items-center gap-2">
+                          {match.isCompleted ? (
+                            <>
+                              <div className="text-2xl font-orbitron font-bold text-white">
+                                {match.result?.p1Score} - {match.result?.p2Score}
+                              </div>
+                              <div className="text-xs uppercase tracking-widest text-neon-blue">
+                                {match.result?.finishType} Finish
+                              </div>
+                              {!readOnly && (
+                                <button onClick={() => handleEditClick(match)} className="text-xs text-gray-500 hover:text-white underline mt-1">
+                                  Edit Result
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            !readOnly && (
+                              <NeonButton onClick={() => handleEditClick(match)} variant="secondary" className="py-1 px-4 text-xs">
+                                Enter Result
+                              </NeonButton>
+                            )
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </NeonCard>
       </div>

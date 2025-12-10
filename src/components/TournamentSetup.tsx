@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, Play } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, Play, Upload, X } from 'lucide-react';
 import type { Participant } from '../types';
 import { createParticipant } from '../utils/tournamentLogic';
 import NeonInput from './NeonInput';
@@ -14,6 +14,7 @@ const TournamentSetup = ({ onStart }: TournamentSetupProps) => {
   const [name, setName] = useState('');
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [groupCount, setGroupCount] = useState(2);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAdd = () => {
     if (!name.trim()) return;
@@ -25,8 +26,52 @@ const TournamentSetup = ({ onStart }: TournamentSetupProps) => {
     setParticipants(participants.filter(p => p.id !== id));
   };
 
+  const handleClearAll = () => {
+    if (confirm('Are you sure you want to remove all participants?')) {
+      setParticipants([]);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleAdd();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      // Simple CSV parser
+      // Assumes one name per line or comma separated values
+      const lines = text.split(/\r?\n/);
+      const newParticipants: Participant[] = [];
+
+      lines.forEach(line => {
+        // Handle comma separated values - take the first column if multiple present
+        const values = line.split(',');
+        values.forEach(val => {
+          const cleanName = val.trim();
+          if (cleanName && cleanName.length > 0) {
+            newParticipants.push(createParticipant(cleanName));
+          }
+        });
+      });
+
+      if (newParticipants.length > 0) {
+        setParticipants(prev => [...prev, ...newParticipants]);
+        alert(`Imported ${newParticipants.length} participants successfully!`);
+      }
+      
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -50,7 +95,34 @@ const TournamentSetup = ({ onStart }: TournamentSetupProps) => {
             </NeonButton>
           </div>
 
-          <div className="mt-8">
+          <div className="flex items-center gap-4 py-4 border-y border-gray-800">
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".csv,.txt"
+              className="hidden"
+            />
+            <NeonButton 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="secondary" 
+              className="flex-1 gap-2 text-sm"
+            >
+              <Upload className="w-4 h-4" /> Import CSV/Text
+            </NeonButton>
+            
+            {participants.length > 0 && (
+              <NeonButton 
+                onClick={handleClearAll}
+                variant="danger" 
+                className="gap-2 text-sm px-3"
+              >
+                <X className="w-4 h-4" /> Clear
+              </NeonButton>
+            )}
+          </div>
+
+          <div className="mt-4">
             <h3 className="text-xl font-orbitron text-neon-purple mb-4">Settings</h3>
             <div className="flex items-center gap-4 bg-dark-surface p-4 rounded-lg border border-gray-800">
               <span className="text-gray-300">Number of Groups:</span>
@@ -107,6 +179,8 @@ const TournamentSetup = ({ onStart }: TournamentSetupProps) => {
             {participants.length === 0 && (
               <div className="text-center text-gray-600 py-10 italic">
                 No participants added yet.
+                <br />
+                <span className="text-xs text-gray-700 mt-2 block">Upload a file or add manually</span>
               </div>
             )}
           </div>
